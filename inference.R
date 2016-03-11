@@ -59,3 +59,14 @@ predictionAndConfidence <- function(){
     g
     
 }
+
+# This code wasn't explained
+predictionR <- function(){
+    newdata <- data.frame(x = xVals)
+    p1 <- predict(fit, newdata, interval = ("confidence"))
+    p2 <- predict(fit, newdata, interval = ("prediction"))
+    plot(x, y, frame=FALSE,xlab="Carat",ylab="Dollars",pch=21,col="black", bg="lightblue", cex=2)
+    abline(fit, lwd = 2)
+    lines(xVals, p1[,2]); lines(xVals, p1[,3])
+    lines(xVals, p2[,2]); lines(xVals, p2[,3])
+}
