@@ -1,0 +1,154 @@
+---
+output: pdf_document
+title: "Implications of manual and automatic transmission in the performance in miles/gallon units"
+author: "Juan Sebastián Beleño Díaz"
+date: "25 de marzo de 2016"
+---
+
+## Executive summary
+
+This document presents the results of a study over the performance(in miles/gallon units) 
+of cars deppending if a car has manual or automatic transmission, the results were that 
+a car with manual transmission has a worst performance than a car that has automatic transmission,
+but in this text you also will find some interesting analysis that were performed to get
+more information in the data.
+
+## Exploratory analysis
+
+In this part of the inform will be exposed some steps that were followed to obtain 
+more information about the dataset that was used in this project, the information
+shown in this part works as input to develop models that explain the impact of
+the type of transmission(`am`) in the the performance measured in miles per gallon(`mpg),
+the code used to find some valuable information was the following:
+
+```{r}
+# Shows information about what mean variables in the dataset
+?mtcars
+
+# This give us an idea in what's the content of the datase
+head(mtcars)
+
+# This shows us the data type of each variable and its range of values
+str(mtcars)
+```
+
+With the information obtained in the chunk of code shown above shows us that the
+variable called `am` should be converted into `factor` type, although exist a set
+of other variables that could be converted in `factor` type as `cyl`, `vs`, `gear`,
+`carb`, it was taken the decision of let those variables a `numeric` due to the 
+behaivor of these variables could also be modeled by a `numeric` type. the conversion
+of types is done by the following code:
+
+```{r, message=FALSE}
+# Load dplyr library
+require(dplyr)
+
+# Convert the factor data from numeric values in automatic/manual transmission values
+mtcars <- mutate(mtcars, am = factor(am, labels = c("automatic", "manual")))
+```
+
+In the appendix A is shown a correlation graphic that shows all the correlations
+among variables in the dataset, but the `factor` type shows a boxplot instead of a
+points and linear graphic that could be seen in more detail using the following code:
+
+```{r, fig.cap="Boxplot of the miles/gallon indicator against automatic/manual transmission"}
+# Load ggplot2 library
+library(ggplot2)
+
+# BoxPlot
+g <- ggplot(mtcars, aes(x=am, y=mpg))
+g <- g + geom_boxplot()
+g <- g + xlab("Transmission") + ylab("Performance [Miles/Gallon]")
+g
+```
+
+Thanks to the graphic above we can say that manual transmission has a worst impact in
+performance [Miles/Gallon] than automatic transmission.
+
+## Regression models
+
+A first aproximation to the regression model, it's used a simple model with just a 
+variable as predictor `am` and the outcome will be `mpg`, this is shown below this 
+text:
+
+```{r, fig.cap="Performance in [Miles/Gallon] vs Manual/Automatic transmission"}
+# simple model
+modelSimple <- lm(mpg ~ am, data = mtcars)
+
+# T-test: This data is inside summary(modelSimple)
+# t.test( mpg ~ am, data = mtcars)
+
+# get some information about this model
+summary(modelSimple)
+```
+
+We can see that the intercept is the average value for mpg when transmission is 
+automatic the mean value is equal to `17.147` and the `ammanual` variable represents
+the data when the transmission when is manual, but is necessary to add the intercept 
+to get the right value that is `24.392`, this means that manual transmission has worst 
+performance in [Miles/Gallon] than automatic transmission as we can see our results
+are p-value significant because `p-value < 0.05`, but watching at `Adjusted R-squared`
+we know that our model just explain a 33.85% of the variance in the outcome, for this 
+reason is better to increase the vairables in the predictor to increase `Adjusted R-squared`
+variable.
+
+To do this job it was necessary to calculate models including all variables to see the
+behaivor as shown below:
+
+```{r, results='hide'}
+modelMultiple <- lm(mpg ~ ., data = mtcars)
+
+summary(modelMultiple)
+```
+
+To create a model with multiple variables we use an aproximation by fixing the `am`
+variable and adding iterativelly variables with low p-values in the global model, until
+reach a model where the p-values are significant, this model is shown below:
+
+```{r}
+modelAdjusted <- lm(mpg ~ am + wt + qsec, data = mtcars)
+
+summary(modelAdjusted)
+```
+
+As we can see in the adjusted model, the variables are significant according with
+p-values and the Adjusted R-squared shows us that our model explain the 83,36% of 
+variance in the outcome. In the Appendix B is hsown the results of residuals in 
+the adjusted model.
+
+## Appendix A
+
+```{r, message=FALSE, fig.cap="Correlations in the Motor Trend Car Road Tests dataset"}
+# Load GGally library
+require(GGally)
+
+# Function to return points and geom_smooth
+# allow for the method to be changed
+# This was necessary due to some problems in the GGally
+# implementation used in the Regression Models videos
+#
+# source: http://stackoverflow.com/a/35088740
+my_fn <- function(data, mapping, method="loess", ...){
+    p <- ggplot(data = data, mapping = mapping) + 
+        geom_point() + 
+        geom_smooth(method=method, ...)
+    p
+}
+
+# Quick overview of data correlations
+g <- ggpairs(mtcars, lower = list(continuous = wrap(my_fn, method="lm")))
+g
+```
+
+## Appendix B
+
+```{r}
+par(mfrow=c(2, 2))
+plot(modelAdjusted)
+```
+
+In the first graphic seems to exist heteroskadicity, the second show us the normality
+of errors and seems to be OK, but exist a little sinusoidal pattern that will be interesting
+analyze later, the third graphic shows the than the first but with standarized residual values
+and finally the fourth graphic shows that exist some points like 9 and 17 that is necessary
+remove because have a different behaivor.
